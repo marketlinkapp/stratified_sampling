@@ -89,22 +89,30 @@ if st.session_state.detail:
         if total_sample == 0:
             st.error("표본수를 하나라도 입력해야 계산이 가능합니다.")
         else:
-            # 기본 가정: 비례할당 → 분산 공식
-            # Var(p̂) = Σ (Nh^2 / N^2) * (p(1-p) / nh)
-            # 최대표본오차 p=0.5 가정
+            # 최대표본오차 가정
             p = 0.5
 
-            # 층별 모집단은 비율 없이 N/층수 로 단순 가정 (필요하면 입력 확장 가능)
+            # 층별 모집단은 N/총층수로 단순 가정
             H = len(n_h)
             Nh = np.repeat(N / H, H)
 
-            # 분산 계산
-            variance = np.sum((Nh**2 / N**2) * (p * (1 - p) / n_h), where=n_h != 0, initial=0)
-            std_error = np.sqrt(variance)
+            # -----------------------
+            # 층별 표본오차(SE_h)
+            # -----------------------
+            SE_h = np.sqrt((Nh**2 / N**2) * (p * (1 - p) / n_h))
 
-            # 95% 신뢰구간 오차
-            margin_error = 1.96 * std_error
+            # -----------------------
+            # 전체 층화비례 표본오차(SE_total)
+            # -----------------------
+            SE_total = np.sqrt(np.sum((Nh**2 / N**2) * (p * (1 - p) / n_h)))
+            MOE_total = 1.96 * SE_total
 
-            st.subheader("📌 계산 결과")
-            st.write(f"**총 표본수:** {total_sample}")
-            st.write(f"**표본오차 (95% CI)**: ± **{margin_error * 100:.2f}%**")
+            # 층별 SE를 데이터프레임으로
+            se_df = pd.DataFrame(SE_h.reshape(sample_df.shape), index=region_names, columns=type_names)
+            st.subheader("📌 층별 표본오차(SE_h)")
+            st.dataframe(se_df)
+
+            st.subheader("📌 전체 층화비례 표본오차")
+            st.write(f"총 표본수 n = {total_sample}")
+            st.write(f"표본오차(SE_total) = {SE_total:.6f}")
+            st.write(f"95% 오차범위(MOE) = ±{MOE_total:.6f}")
