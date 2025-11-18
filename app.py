@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-st.title("층화비례 표본오차 계산 프로그램 (Stratified Sampling)")
+st.title("마켓링크 층화비례 표본오차 계산 프로그램 (Stratified Sampling)")
 
 # -------------------
 # 초기화 버튼
