@@ -2,12 +2,12 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-st.title("1.마켓링크 층화비례 표본오차 계산 프로그램 (Stratified Sampling)")
+st.title("마켓링크 층화비례 표본오차 계산 APP (Stratified Sampling)")
 
 # -------------------
 # 초기화 버튼
 # -------------------
-if st.button("🔄 초기화"):
+if st.button("초기화"):
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     st.rerun()
@@ -56,19 +56,19 @@ if st.session_state.detail:
         )
 
     # -----------------------------
-    # 각 층별 표본수 입력(nₕ)
+    # 각 층별 표본수 입력(n?)
     # -----------------------------
-    st.subheader("지역 × 유형별 표본수 (nₕ) 입력")
+    st.subheader("지역 × 유형별 표본수 (n?) 입력")
     sample_matrix = []
 
     for i in range(num_regions):
         row = []
-        st.markdown(f"### 👉 {region_names[i]} 층의 표본수 입력")
+        st.markdown(f"### {region_names[i]} 층의 표본수 입력")
         cols = st.columns(num_types)
 
         for j in range(num_types):
             n_h = cols[j].number_input(
-                f"{region_names[i]} - {type_names[j]} (표본수 nₕ)",
+                f"{region_names[i]} - {type_names[j]} (표본수 n?)",
                 min_value=0,
                 value=0,
                 key=f"n_{i}_{j}"
@@ -78,23 +78,23 @@ if st.session_state.detail:
         sample_matrix.append(row)
 
     sample_df = pd.DataFrame(sample_matrix, index=region_names, columns=type_names)
-    st.write("### ✔ 입력된 표본수(nₕ)")
+    st.write("### 입력된 표본수(n?)")
     st.dataframe(sample_df)
 
     # -----------------------------
-    # 🔥 각 층별 모집단(Nₕ) 입력 추가 (요청 기능)
+    # 각 층별 모집단(N?) 입력
     # -----------------------------
-    st.subheader("지역 × 유형별 모집단수 (Nₕ) 입력")
+    st.subheader("지역 × 유형별 모집단수 (N?) 입력")
     pop_matrix = []
 
     for i in range(num_regions):
         row = []
-        st.markdown(f"### 👉 {region_names[i]} 층의 모집단 입력")
+        st.markdown(f"### {region_names[i]} 층의 모집단 입력")
         cols = st.columns(num_types)
 
         for j in range(num_types):
             Nh_val = cols[j].number_input(
-                f"{region_names[i]} - {type_names[j]} (모집단수 Nₕ)",
+                f"{region_names[i]} - {type_names[j]} (모집단수 N?)",
                 min_value=0,
                 value=0,
                 key=f"Nh_{i}_{j}"
@@ -104,11 +104,11 @@ if st.session_state.detail:
         pop_matrix.append(row)
 
     Nh_df = pd.DataFrame(pop_matrix, index=region_names, columns=type_names)
-    st.write("### ✔ 입력된 모집단수(Nₕ)")
+    st.write("### 입력된 모집단수(N?)")
     st.dataframe(Nh_df)
 
     # -------------------
-    # 표본오차 계산
+    # 표본오차 계산 (FPC 적용)
     # -------------------
     if st.button("표본오차 계산"):
 
@@ -119,21 +119,21 @@ if st.session_state.detail:
         total_Nh = np.sum(Nh)
 
         if total_sample == 0:
-            st.error("표본수(nₕ)를 하나 이상 입력해야 계산이 가능합니다.")
+            st.error("표본수(n?)를 하나 이상 입력해야 계산이 가능합니다.")
         elif np.any(n_h == 0):
-            st.error("각 층의 표본수(nₕ)는 0일 수 없습니다. (표본오차 계산 불가)")
+            st.error("각 층의 표본수(n?)는 0일 수 없습니다. (표본오차 계산 불가)")
         else:
             p = 0.5  # 최대 표본오차
 
             # -----------------------
-            # 층별 표본오차 (SEₕ)
+            # 층별 표본오차 (SE?) with FPC
             # -----------------------
-            SE_h = np.sqrt((Nh / N)**2 * (p * (1 - p) / n_h))
+            SE_h = np.sqrt((Nh / N)**2 * (p * (1 - p) / n_h) * (1 - n_h / Nh))
 
             # -----------------------
-            # 전체 표본오차 (SE_total)
+            # 전체 표본오차 (SE_total) with FPC
             # -----------------------
-            SE_total = np.sqrt(np.sum((Nh / N)**2 * (p * (1 - p) / n_h)))
+            SE_total = np.sqrt(np.sum((Nh / N)**2 * (p * (1 - p) / n_h) * (1 - n_h / Nh)))
             MOE_total = 1.96 * SE_total
 
             # 층별 표본오차 테이블 변환
@@ -141,12 +141,12 @@ if st.session_state.detail:
                                  index=region_names,
                                  columns=type_names)
 
-            st.subheader("📌 층별 표본오차(SEₕ)")
+            st.subheader("층별 표본오차(SE?) - FPC 적용")
             st.dataframe(se_df)
 
-            st.subheader("📌 전체 층화비례 표본오차 결과")
+            st.subheader("전체 층화비례 표본오차 결과 (FPC 적용)")
             st.write(f"총 표본수 = {total_sample}")
-            st.write(f"입력된 층별 모집단 총합(Nₕ의 합) = {total_Nh}")
+            st.write(f"입력된 층별 모집단 총합(N?의 합) = {total_Nh}")
             st.write(f"전체 모집단 N = {N}")
             st.write(f"표본오차(SE_total) = {SE_total:.6f}")
             st.write(f"95% 오차범위(MOE) = ±{MOE_total:.6f}")
